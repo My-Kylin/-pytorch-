@@ -1,1 +1,90 @@
 
+1、k-近邻算法概:
+
+	简单地说，K近邻算法 采用测量不同特征值之间的距离方法进行分类。
+	优点：精度高、对异常值不敏感、无数据输入假定。
+	缺点：计算复杂度高、空间复杂度高。 适用数据范围：数值型和标称型。
+
+2、K-近邻算法工作原理：
+
+	存在一个样本数据集合（训练样本集），并且样本集中每个数据都存在标签，即我们知道样本集中每一数据与所属分类的对应关系。
+	输人没有标签的新数据后，将新数据的每个特征与样本集中数据对应的征进行比较（采用距离度量，及算法输入的新数据与原来样本集距离），然后计算并提	 取出样本集中前 K 个距离度量最近（特征最相似）的分类标签。通常 K 是不大于20的整数。
+	
+ 	最后，在提取的 K 个中出现次数最多的分类，作为新数据的分类。 
+	
+3、案例
+
+	样本集 ：鸢尾花数据集，数据集内包含 3 类共 15 条记录，每类各 5 个数据，每条记录都有 4 项特征：花萼长度、花萼宽度、花瓣长度、花瓣宽度
+
+	5.1,3.5,1.4,0.2,Iris-setosa                                      新输入数据     5.6,2.9,3.6,1.3,          正确结果 Iris-versicolor
+	4.9,3.0,1.4,0.2,Iris-setosa														5.1,3.8,1.9,0.4,          正确结果 Iris-setosa
+	4.7,3.2,1.3,0.2,Iris-setosa														5.5,2.4,3.7,1.0,		  正确结果 Iris-versicolor
+	4.6,3.1,1.5,0.2,Iris-setosa
+	5.0,3.6,1.4,0.2,Iris-setosa
+	7.0,3.2,4.7,1.4,Iris-versicolor
+	6.4,3.2,4.5,1.5,Iris-versicolor
+	6.9,3.1,4.9,1.5,Iris-versicolor
+	5.5,2.3,4.0,1.3,Iris-versicolor
+	6.5,2.8,4.6,1.5,Iris-versicolor
+	6.3,3.3,6.0,2.5,Iris-virginica
+	5.8,2.7,5.1,1.9,Iris-virginica
+	7.1,3.0,5.9,2.1,Iris-virginica
+	6.3,2.9,5.6,1.8,Iris-virginica
+	6.5,3.0,5.8,2.2,Iris-virginica
+
+用Pytorch实现算法
+import torch
+import numpy
+#
+#                                      新输入数据    6.8,3.2,5.9,2.3,          正确结果 Iris-virginica
+#													 5.1,3.8,1.9,0.4,          正确结果 Iris-setosa
+#													 5.5,2.4,3.7,1.0,		   正确结果 Iris-versicolor
+
+# 导入数据，对大量的数据，可以使用split方法对文本操作
+data = torch.tensor( [[5.1,3.5,1.4,0.2],[4.9,3.0,1.4,0.2],[4.7,3.2,1.3,0.2],[4.6,3.1,1.5,0.2],[5.0,3.6,1.4,0.2],
+                       [7.0,3.2,4.7,1.4],[6.4,3.2,4.5,1.5],[6.9,3.1,4.9,1.5],[5.5,2.3,4.0,1.3],[6.5,2.8,4.6,1.5],
+                       [6.3,3.3,6.0,2.5],[5.8,2.7,5.1,1.9],[7.1,3.0,5.9,2.1],[6.3,2.9,5.6,1.8],[6.5,3.0,5.8,2.2]] )
+
+labels = ['Iris-setosa', 'Iris-setosa', 'Iris-setosa', 'Iris-setosa', 'Iris-setosa', 'Iris-setosa',
+          'Iris-versicolor', 'Iris-versicolor', 'Iris-versicolor', 'Iris-versicolor', 'Iris-versicolor',
+          'Iris-virginica', 'Iris-virginica', 'Iris-virginica', 'Iris-virginica', 'Iris-virginica']
+input_data_virginica = torch.tensor([6.8,3.2,5.9,2.3])
+input_data_setosa = torch.tensor([5.6,2.9,3.6,1.3])
+input_data_versicolor = torch.tensor([5.6,2.9,3.6,1.3])
+
+
+
+def KNNClassify(newInput, dataset, labels, k):
+
+    """采用欧氏距离 ，进行距离度量 """
+    distance = []
+    for i in range(len(dataset)):
+        d = ((newInput - dataset[i]).pow(2).sum()) ** 0.5
+        distance.append(d)
+
+    """将距离按升序排序，并取距离最近的k个近邻点"""
+    # 对数组distance按升序排序，返回数组排序后的值对应的索引值
+    distance = torch.tensor(distance)
+    sortedDistance = distance.argsort()
+
+    # 定义一个空字典，存放k个近邻点的分类计数
+    classCount = {}
+
+    # 对k个近邻点分类计数，多数表决法
+    for i in range(k):
+        # 第i个近邻点在distance数组中的索引,对应的分类
+        votelabel = labels[sortedDistance[i]]
+
+        # votelabel作为字典的key，对相同的key值累加（多数表决法）
+        classCount[votelabel] = classCount.get(votelabel, 0) + 1
+
+        # 对k个近邻点的分类计数按降序排序，返回得票数最多的分类结果
+
+    sortedClassCount = sorted(classCount.items(), reverse=True)
+
+    return sortedClassCount[0][0]
+
+
+result = KNNClassify(input_data_virginica, data, labels, 5)
+print(result)
+
